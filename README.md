@@ -29,3 +29,48 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 - `go run greeter_server/main.go`でサーバーを実行
 - 別の端末から `go run greeter_client/main.go`を実行してクライアントを起動
   - `Greeting: Hello World` が出力される
+
+### update the gRPC service
+
+拡張メソッドで上記サンプルコードをアップデートする。gRPCサービスは `protocol buffers`を使って定義される。
+詳しくは Basic tutorialを参考にする。
+
+- サンプルコードでは、サーバー・クライントともに `SayHello()` stubをもっている。
+- helloworld/helloworld.protoに `SayHelloAgain()`メソッドを追加する。
+
+```proto
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  // Sends another greeting
+  rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+}
+```
+
+- 新しいサービスを使う前に、`.proto`ファイルの更新を再コンパイルする必要がある。
+
+```shell
+protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    helloworld/helloworld.proto
+```
+
+- これで `helloworld/helloworld.pb.go`が再生成される
+- サーバーに関数を加えてアップデートする
+
+```go
+func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+        return &pb.HelloReply{Message: "Hello again " + in.GetName()}, nil
+}
+```
+
+- クライアントをアップデートする
+
+```go
+r, err = c.SayHelloAgain(ctx, &pb.HelloRequest{Name: *name})
+if err != nil {
+        log.Fatalf("could not greet: %v", err)
+}
+log.Printf("Greeting: %s", r.GetMessage())
+```
