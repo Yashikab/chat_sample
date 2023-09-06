@@ -28,3 +28,60 @@ cd grpc-go/examples/route_guide
 
 最初のステップはgRPCサービスを定義することである。
 すでに完成された`.proto`ファイルは `routeguide/route_guide.proto`にある
+
+- serviceを定義するには serviceという名前を `.proto`ファイルの中で特定する
+
+```proto
+service RouteGuide {
+    ...
+}
+```
+
+- serviceのなかに、`rpc`メソッドを定義し、リクエストとレスポンスタイプを特定する。gRPCは4種類のサービスメソッドをRouteGuideのなかに定義している
+
+  - stubをつかってクライアントがサーバーにリクエストを送信したときに、普通の関数呼び出しのように返信するもの
+
+  ```proto
+  service RouteGuide {
+    rpc GetFeature(Point) returns(Feature) {}
+  }
+  ```
+
+  - サーバーサイドのストリーミングRPCでクライアントがリクエストを送信したときにメッセージのシーケンスをストリームする。
+    クライアントは返信されたストリームをメッセージがなくなるまで読み続ける。
+
+  ```proto
+  service RouteGuide {
+    rpc ListFeatures(Rectangle) returns(stream Feature) {}
+  }
+  ```
+
+  - クライアント側のストリーミングRPCで、クライアントがメッセージのシーケンスを送信する。一旦クライアント側のメッセージが書き終わったら、サーバーが全部読むのをまち、その後レスポンスをもらう。
+
+  ```proto
+  service RouteGuide {
+    rpc RecordRoute(stream Point) returns(RouteSummary) {}
+  }
+  ```
+
+  - 双方向のストリーミングRPC。2つのストリームを独立に操作する。クライアントとサーバーは読み書きが自由にできる。
+  例えば、サーバーがクライアントメッセージをまってからレスポンスを書くことや、交互に読み書きを行ったりできる。
+
+  ```proto
+  service RouteGuide {
+    rpc RouteChat(stream RouteNote) returns(stream RouteNote) {}
+  }
+  ```
+
+## Generating client and server code
+
+```shell
+$ protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    routeguide/route_guide.proto
+```
+
+- `route_guide.pb.go`はすべてのprotocol bufferコードのリクエストとレスポンスタイプに関する記述をする
+- `route_guide_grpc.pb.go`は以下を含む
+  - `RouteGUide`サービスのメソッド定義を呼ぶためのクライアントのためのインタフェースタイプ
+  - `RouteGuide`サービスメソッド定義のサーバー側の実装
