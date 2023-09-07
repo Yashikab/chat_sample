@@ -85,3 +85,13 @@ $ protoc --go_out=. --go_opt=paths=source_relative \
 - `route_guide_grpc.pb.go`は以下を含む
   - `RouteGUide`サービスのメソッド定義を呼ぶためのクライアントのためのインタフェースタイプ
   - `RouteGuide`サービスメソッド定義のサーバー側の実装
+
+## Creating the server
+
+`RouteGuide`サーバーがどのように作られているか見る。
+2つのパートがある
+
+- サービス定義によって生成されたインタフェースの実装
+- クラアントからのリクエストを聞き、正しいサービスの実装を返す
+
+### RouteGuideの実装
