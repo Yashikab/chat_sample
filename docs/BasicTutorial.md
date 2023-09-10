@@ -95,3 +95,10 @@ $ protoc --go_out=. --go_opt=paths=source_relative \
 - クラアントからのリクエストを聞き、正しいサービスの実装を返す
 
 ### RouteGuideの実装
+
+生成された`routeGuideServer`インタフェースを実装した`routeGuideServer`structタイプを私達のサーバーは持っている。
+
+#### Simple RPC
+
+`routeGuideServer`実装はすべてのサービスメソッドを実装する。
+`GetFeature`はクライアントからの`Point`を取得するだけの単純なもので、`Feature`内のDBにある対応する情報を返却する。
