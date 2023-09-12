@@ -102,3 +102,7 @@ $ protoc --go_out=. --go_opt=paths=source_relative \
 
 `routeGuideServer`実装はすべてのサービスメソッドを実装する。
 `GetFeature`はクライアントからの`Point`を取得するだけの単純なもので、`Feature`内のDBにある対応する情報を返却する。
+
+#### Server-side streaming RPC
+
+`ListFeatures`はサーバーサイドのRPCでmultiple featuresをクライアントに送る
