@@ -103,10 +103,73 @@ $ protoc --go_out=. --go_opt=paths=source_relative \
 `routeGuideServer`実装はすべてのサービスメソッドを実装する。
 `GetFeature`はクライアントからの`Point`を取得するだけの単純なもので、`Feature`内のDBにある対応する情報を返却する。
 
+```go
+func (s *routeGuideServer) GetFeature(ctx context.Context, point *pb.Point) (*pb.Feature, error) {
+  for _, feature := range s.savedFeatures {
+    if proto.Equal(feature.Location, point) {
+      return feature, nil
+    }
+  }
+  // No feature was found, return an unnamed feature
+  return &pb.Feature{Location: point}, nil
+}
+```
+
 #### Server-side streaming RPC
 
 `ListFeatures`はサーバーサイドのRPCでmultiple featuresをクライアントに送る
+simple RPCとは違いサーバーは request objectをうけとり`RouteGuide_ListFeaturesServer`オブジェクトを返却する
 
-#### Server-side streaming RPC
+メソッド内では、たくさんの戻り値に必要な`Feature`オブジェクトを格納し、`Send()`をつかって `RouteGuide_ListFeaturesServer`に書き込む。
 
-`ListFeatures`はストリーミングRPCで複数の`Features`をクライアントに送る.
+```go
+func (s *routeGuideServer) ListFeatures(rect *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer) error {
+  for _, feature := range s.savedFeatures {
+    if inRange(feature.Location, rect) {
+      if err := stream.Send(feature); err != nil {
+        return err
+      }
+    }
+  }
+  return nil
+}
+```
+
+#### client-side streaming RPC
+
+クライアントから、`Point`のストリームをうけ、`RouteSummary`を返す。
+メソッドはrequest parameterをもたないかわりに `RouteGuide_RecordRouteServer`ストリームを取得する。
+このサーバーはメッセージの読み書き両方で使用可能である。`Recv()`をつかうことでメッセージを受信し、single responseを`SendAndClose()`を使って送信する。
+
+```go
+func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) error {
+  var pointCount, featureCount, distance int32
+  var lastPoint *pb.Point
+  startTime := time.Now()
+  for {
+    point, err := stream.Recv()
+    if err == io.EOF {
+      endTime := time.Now()
+      return stream.SendAndClose(&pb.RouteSummary{
+        PointCount:   pointCount,
+        FeatureCount: featureCount,
+        Distance:     distance,
+        ElapsedTime:  int32(endTime.Sub(startTime).Seconds()),
+      })
+    }
+    if err != nil {
+      return err
+    }
+    pointCount++
+    for _, feature := range s.savedFeatures {
+      if proto.Equal(feature.Location, point) {
+        featureCount++
+      }
+    }
+    if lastPoint != nil {
+      distance += calcDistance(lastPoint, point)
+    }
+    lastPoint = point
+  }
+}
+```
