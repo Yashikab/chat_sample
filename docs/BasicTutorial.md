@@ -106,3 +106,7 @@ $ protoc --go_out=. --go_opt=paths=source_relative \
 #### Server-side streaming RPC
 
 `ListFeatures`はサーバーサイドのRPCでmultiple featuresをクライアントに送る
+
+#### Server-side streaming RPC
+
+`ListFeatures`はストリーミングRPCで複数の`Features`をクライアントに送る.
