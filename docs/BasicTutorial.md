@@ -173,3 +173,30 @@ func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) e
   }
 }
 ```
+
+#### Bidirectional Streaming RPC
+
+`RouteChat()`をみる。
+client側のストリーミングは `RouteGuide_RouteChatServer`ストリームで、メッセージを読み書きできる。
+一方でクライアントがメッセージをストリームしている間にサーバーはメッセージを書き込むことができる。
+
+```go
+func (s *routeGuideServer) RouteChat(stream pb.RouteGuide_RouteChatServer) error {
+  for {
+    in, err := stream.Recv()
+    if err == io.EOF {
+      return nil
+    }
+    if err != nil {
+      return err
+    }
+    key := serialize(in.Location)
+                ... // look for notes to be sent to client
+    for _, note := range s.routeNotes[key] {
+      if err := stream.Send(note); err != nil {
+        return err
+      }
+    }
+  }
+}
+```
