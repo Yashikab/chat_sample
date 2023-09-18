@@ -200,3 +200,32 @@ func (s *routeGuideServer) RouteChat(stream pb.RouteGuide_RouteChatServer) error
   }
 }
 ```
+
+### Starting the server
+
+1. 使用するportを特定する
+
+    ```go
+    lis, err := net.Listen(...)
+    ```
+
+2. gRPCサーバーのインスタンスを作る。`grpc.NewServer(...)`
+3. gRPCサーバーを使ってサービス実装を登録する
+4. `serve()`を呼び出して、`Stop()`が呼ばれるか、プロセスがkillされるまでポートをブロックする
+
+### Creating the client
+
+#### Creating a stub
+
+サービスメソッドを呼び出すため、gRPCチャンネルを作る必要がある。
+`grpc.Dia()`にサーバーアドレスとポート番号を通す
+
+```go
+var opts []grpc.DialOption
+...
+conn, err := grpc.Dial(*serverAddr, opts...)
+if err != nil {
+  ...
+}
+defer conn.Close()
+```
