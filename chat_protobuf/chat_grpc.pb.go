@@ -8,7 +8,6 @@ package __
 
 import (
 	context "context"
-	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,152 +18,88 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// ChatServiceClient is the client API for ChatService service.
+// HelloGrpcClient is the client API for HelloGrpc service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ChatServiceClient interface {
-	GetMessageStream(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (ChatService_GetMessageStreamClient, error)
-	CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...grpc.CallOption) (*CreateMessageResponse, error)
+type HelloGrpcClient interface {
+	GreetServer(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (*GreetMessage, error)
 }
 
-type chatServiceClient struct {
+type helloGrpcClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
-	return &chatServiceClient{cc}
+func NewHelloGrpcClient(cc grpc.ClientConnInterface) HelloGrpcClient {
+	return &helloGrpcClient{cc}
 }
 
-func (c *chatServiceClient) GetMessageStream(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (ChatService_GetMessageStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ChatService_ServiceDesc.Streams[0], "/chat.ChatService/GetMessageStream", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &chatServiceGetMessageStreamClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type ChatService_GetMessageStreamClient interface {
-	Recv() (*GetMessageStreamResponse, error)
-	grpc.ClientStream
-}
-
-type chatServiceGetMessageStreamClient struct {
-	grpc.ClientStream
-}
-
-func (x *chatServiceGetMessageStreamClient) Recv() (*GetMessageStreamResponse, error) {
-	m := new(GetMessageStreamResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *chatServiceClient) CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...grpc.CallOption) (*CreateMessageResponse, error) {
-	out := new(CreateMessageResponse)
-	err := c.cc.Invoke(ctx, "/chat.ChatService/CreateMessage", in, out, opts...)
+func (c *helloGrpcClient) GreetServer(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (*GreetMessage, error) {
+	out := new(GreetMessage)
+	err := c.cc.Invoke(ctx, "/chat.HelloGrpc/GreetServer", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ChatServiceServer is the server API for ChatService service.
-// All implementations must embed UnimplementedChatServiceServer
+// HelloGrpcServer is the server API for HelloGrpc service.
+// All implementations must embed UnimplementedHelloGrpcServer
 // for forward compatibility
-type ChatServiceServer interface {
-	GetMessageStream(*empty.Empty, ChatService_GetMessageStreamServer) error
-	CreateMessage(context.Context, *CreateMessageRequest) (*CreateMessageResponse, error)
-	mustEmbedUnimplementedChatServiceServer()
+type HelloGrpcServer interface {
+	GreetServer(context.Context, *GreetRequest) (*GreetMessage, error)
+	mustEmbedUnimplementedHelloGrpcServer()
 }
 
-// UnimplementedChatServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedChatServiceServer struct {
+// UnimplementedHelloGrpcServer must be embedded to have forward compatible implementations.
+type UnimplementedHelloGrpcServer struct {
 }
 
-func (UnimplementedChatServiceServer) GetMessageStream(*empty.Empty, ChatService_GetMessageStreamServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetMessageStream not implemented")
+func (UnimplementedHelloGrpcServer) GreetServer(context.Context, *GreetRequest) (*GreetMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GreetServer not implemented")
 }
-func (UnimplementedChatServiceServer) CreateMessage(context.Context, *CreateMessageRequest) (*CreateMessageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateMessage not implemented")
-}
-func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
+func (UnimplementedHelloGrpcServer) mustEmbedUnimplementedHelloGrpcServer() {}
 
-// UnsafeChatServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ChatServiceServer will
+// UnsafeHelloGrpcServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to HelloGrpcServer will
 // result in compilation errors.
-type UnsafeChatServiceServer interface {
-	mustEmbedUnimplementedChatServiceServer()
+type UnsafeHelloGrpcServer interface {
+	mustEmbedUnimplementedHelloGrpcServer()
 }
 
-func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
-	s.RegisterService(&ChatService_ServiceDesc, srv)
+func RegisterHelloGrpcServer(s grpc.ServiceRegistrar, srv HelloGrpcServer) {
+	s.RegisterService(&HelloGrpc_ServiceDesc, srv)
 }
 
-func _ChatService_GetMessageStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ChatServiceServer).GetMessageStream(m, &chatServiceGetMessageStreamServer{stream})
-}
-
-type ChatService_GetMessageStreamServer interface {
-	Send(*GetMessageStreamResponse) error
-	grpc.ServerStream
-}
-
-type chatServiceGetMessageStreamServer struct {
-	grpc.ServerStream
-}
-
-func (x *chatServiceGetMessageStreamServer) Send(m *GetMessageStreamResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _ChatService_CreateMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateMessageRequest)
+func _HelloGrpc_GreetServer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GreetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ChatServiceServer).CreateMessage(ctx, in)
+		return srv.(HelloGrpcServer).GreetServer(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/chat.ChatService/CreateMessage",
+		FullMethod: "/chat.HelloGrpc/GreetServer",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).CreateMessage(ctx, req.(*CreateMessageRequest))
+		return srv.(HelloGrpcServer).GreetServer(ctx, req.(*GreetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
+// HelloGrpc_ServiceDesc is the grpc.ServiceDesc for HelloGrpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ChatService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "chat.ChatService",
-	HandlerType: (*ChatServiceServer)(nil),
+var HelloGrpc_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "chat.HelloGrpc",
+	HandlerType: (*HelloGrpcServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateMessage",
-			Handler:    _ChatService_CreateMessage_Handler,
+			MethodName: "GreetServer",
+			Handler:    _HelloGrpc_GreetServer_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "GetMessageStream",
-			Handler:       _ChatService_GetMessageStream_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "chat.proto",
 }
