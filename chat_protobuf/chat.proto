@@ -8,7 +8,7 @@ package chat;
 option go_package = "./";
 
 service HelloGrpc {
-    rpc GreetServer (GreetRequest) returns (GreetMessage);
+    rpc GreetServer (GreetRequest) returns (GreetMessage) {}
     // rpc GetMessageStream (google.protobuf.Empty) returns (stream GetMessageStreamResponse);
     // rpc CreateMessage (CreateMessageRequest) returns (CreateMessageResponse);
 }
