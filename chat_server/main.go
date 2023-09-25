@@ -11,7 +11,9 @@ import (
 	pb "github.com/Yashikab/chat_sample/chat_protobuf"
 )
 
-type server struct{}
+type server struct {
+	pb.UnimplementedHelloGrpcServer
+}
 
 func (s *server) GreetServer(ctx context.Context, p *pb.GreetRequest) (*pb.GreetMessage, error) {
 	log.Printf("Request from: %s", p.Name)
