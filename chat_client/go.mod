@@ -1,9 +1,9 @@
-module github.com/Yashikab/chat_sample/chat_server
+module github.com/Yashikab/chat_sample/chat_client
 
 go 1.20
 
 require (
-	github.com/Yashikab/chat_sample/chat_protobuf v0.0.0-20230923005346-dc8f04bb29a2
+	github.com/Yashikab/chat_sample/chat_protobuf v0.0.0-20230925001443-0df374198d42
 	google.golang.org/grpc v1.58.2
 )
 
