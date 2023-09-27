@@ -9,6 +9,9 @@ option go_package = "./";
 
 service HelloGrpc {
     rpc GreetServer (GreetRequest) returns (GreetMessage) {}
+
+    rpc SendMessage (stream SendRequest) returns (SendResult) {}
+    rpc GetMessage (MessagesRequest) returns (stream Message) {}
     // rpc GetMessageStream (google.protobuf.Empty) returns (stream GetMessageStreamResponse);
     // rpc CreateMessage (CreateMessageRequest) returns (CreateMessageResponse);
 }
@@ -20,20 +23,22 @@ message GreetMessage {
     string msg = 1;
 }
 
-// message Message {
-//     string from = 1;
-//     string content = 2;
-//     google.protobuf.Timestamp created_at = 3;
-// }
+message SendRequest {
+    string id = 1;
+    string user = 2;
+    string content = 3;
+}
 
-// message GetMessageStreamResponse {
-//     Message message = 1;
-// }
+message SendResult {
+    string result = 1;
+}
 
-// message CreateMessageRequest {
-//     Message message = 1;
-// }
+message MessagesRequest {
+    string id = 1;
+}
 
-// message CreateMessageResponse {
-//     string result = 1;
-// }
+message Message {
+    string id = 1;
+    string user = 2;
+    string content = 3;
+}

@@ -23,6 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HelloGrpcClient interface {
 	GreetServer(ctx context.Context, in *GreetRequest, opts ...grpc.CallOption) (*GreetMessage, error)
+	SendMessage(ctx context.Context, opts ...grpc.CallOption) (HelloGrpc_SendMessageClient, error)
+	GetMessage(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (HelloGrpc_GetMessageClient, error)
 }
 
 type helloGrpcClient struct {
@@ -42,11 +44,79 @@ func (c *helloGrpcClient) GreetServer(ctx context.Context, in *GreetRequest, opt
 	return out, nil
 }
 
+func (c *helloGrpcClient) SendMessage(ctx context.Context, opts ...grpc.CallOption) (HelloGrpc_SendMessageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HelloGrpc_ServiceDesc.Streams[0], "/chat.HelloGrpc/SendMessage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &helloGrpcSendMessageClient{stream}
+	return x, nil
+}
+
+type HelloGrpc_SendMessageClient interface {
+	Send(*SendRequest) error
+	CloseAndRecv() (*SendResult, error)
+	grpc.ClientStream
+}
+
+type helloGrpcSendMessageClient struct {
+	grpc.ClientStream
+}
+
+func (x *helloGrpcSendMessageClient) Send(m *SendRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *helloGrpcSendMessageClient) CloseAndRecv() (*SendResult, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(SendResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *helloGrpcClient) GetMessage(ctx context.Context, in *MessagesRequest, opts ...grpc.CallOption) (HelloGrpc_GetMessageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HelloGrpc_ServiceDesc.Streams[1], "/chat.HelloGrpc/GetMessage", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &helloGrpcGetMessageClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type HelloGrpc_GetMessageClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type helloGrpcGetMessageClient struct {
+	grpc.ClientStream
+}
+
+func (x *helloGrpcGetMessageClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HelloGrpcServer is the server API for HelloGrpc service.
 // All implementations must embed UnimplementedHelloGrpcServer
 // for forward compatibility
 type HelloGrpcServer interface {
 	GreetServer(context.Context, *GreetRequest) (*GreetMessage, error)
+	SendMessage(HelloGrpc_SendMessageServer) error
+	GetMessage(*MessagesRequest, HelloGrpc_GetMessageServer) error
 	mustEmbedUnimplementedHelloGrpcServer()
 }
 
@@ -56,6 +126,12 @@ type UnimplementedHelloGrpcServer struct {
 
 func (UnimplementedHelloGrpcServer) GreetServer(context.Context, *GreetRequest) (*GreetMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GreetServer not implemented")
+}
+func (UnimplementedHelloGrpcServer) SendMessage(HelloGrpc_SendMessageServer) error {
+	return status.Errorf(codes.Unimplemented, "method SendMessage not implemented")
+}
+func (UnimplementedHelloGrpcServer) GetMessage(*MessagesRequest, HelloGrpc_GetMessageServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetMessage not implemented")
 }
 func (UnimplementedHelloGrpcServer) mustEmbedUnimplementedHelloGrpcServer() {}
 
@@ -88,6 +164,53 @@ func _HelloGrpc_GreetServer_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HelloGrpc_SendMessage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(HelloGrpcServer).SendMessage(&helloGrpcSendMessageServer{stream})
+}
+
+type HelloGrpc_SendMessageServer interface {
+	SendAndClose(*SendResult) error
+	Recv() (*SendRequest, error)
+	grpc.ServerStream
+}
+
+type helloGrpcSendMessageServer struct {
+	grpc.ServerStream
+}
+
+func (x *helloGrpcSendMessageServer) SendAndClose(m *SendResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *helloGrpcSendMessageServer) Recv() (*SendRequest, error) {
+	m := new(SendRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _HelloGrpc_GetMessage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(MessagesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HelloGrpcServer).GetMessage(m, &helloGrpcGetMessageServer{stream})
+}
+
+type HelloGrpc_GetMessageServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type helloGrpcGetMessageServer struct {
+	grpc.ServerStream
+}
+
+func (x *helloGrpcGetMessageServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // HelloGrpc_ServiceDesc is the grpc.ServiceDesc for HelloGrpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +223,17 @@ var HelloGrpc_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _HelloGrpc_GreetServer_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SendMessage",
+			Handler:       _HelloGrpc_SendMessage_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetMessage",
+			Handler:       _HelloGrpc_GetMessage_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "chat.proto",
 }
