@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 
 	"google.golang.org/grpc"
 
@@ -13,6 +14,7 @@ import (
 )
 
 type server struct {
+	mu         sync.Mutex
 	contentMap map[string][]pb.Message
 	pb.UnimplementedHelloGrpcServer
 }
@@ -26,12 +28,13 @@ func (s *server) SendMessage(stream pb.HelloGrpc_SendMessageServer) error {
 	for {
 		m, err := stream.Recv()
 		log.Printf("Recieve message >> [%s] %s", m.User, m.Content)
+		s.mu.Lock()
 		if _, ok := s.contentMap[m.Id]; ok {
 			s.contentMap[m.Id] = append(s.contentMap[m.Id], pb.Message{Id: m.Id, User: m.User, Content: m.Content})
 		} else {
 			s.contentMap[m.Id] = []pb.Message{pb.Message{Id: m.Id, User: m.User, Content: m.Content}}
 		}
-
+		s.mu.Unlock()
 		if err == io.EOF {
 			return stream.SendAndClose(&pb.SendResult{Result: "true"})
 		}
@@ -48,10 +51,14 @@ func (s *server) GetMessage(p *pb.MessagesRequest, stream pb.HelloGrpc_GetMessag
 	if _, ok := s.contentMap[p.Id]; !ok {
 		s.contentMap[p.Id] = []pb.Message{}
 	}
+	s.mu.Lock()
 	displayedContent := s.contentMap[p.Id]
+	s.mu.Unlock()
 
 	for {
+		s.mu.Lock()
 		unDisplayedContent := s.contentMap[p.Id]
+		s.mu.Unlock()
 		if len(unDisplayedContent) > len(displayedContent) {
 			msg := unDisplayedContent[len(unDisplayedContent)-1]
 			if err := stream.Send(&pb.Message{Id: msg.Id, User: msg.User, Content: msg.Content}); err != nil {
