@@ -29,7 +29,7 @@ func (s *server) SendMessage(stream pb.HelloGrpc_SendMessageServer) error {
 		if _, ok := s.contentMap[m.Id]; ok {
 			s.contentMap[m.Id] = append(s.contentMap[m.Id], pb.Message{Id: m.Id, User: m.User, Content: m.Content})
 		} else {
-			s.contentMap[m.Id][0] = pb.Message{Id: m.Id, User: m.User, Content: m.Content}
+			s.contentMap[m.Id] = []pb.Message{pb.Message{Id: m.Id, User: m.User, Content: m.Content}}
 		}
 
 		if err == io.EOF {
@@ -71,7 +71,7 @@ func main() {
 	}
 	log.Printf("Run server port: %d", port)
 	grpcServer := grpc.NewServer()
-	pb.RegisterHelloGrpcServer(grpcServer, &server{})
+	pb.RegisterHelloGrpcServer(grpcServer, &server{contentMap: make(map[string][]pb.Message)})
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

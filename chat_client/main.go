@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 
 	pb "github.com/Yashikab/chat_sample/chat_protobuf"
 	"google.golang.org/grpc"
@@ -70,8 +69,28 @@ func main() {
 	defer conn.Close()
 	c := pb.NewHelloGrpcClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*100)
-	defer cancel()
-
-	// TODO: 条件分岐
+	if len(os.Args) > 2 {
+		switch os.Args[1] {
+		case "send":
+			err := sendMessage(c, os.Args[2], os.Args[3])
+			if err != nil {
+				log.Fatalf("Couldn't execute: %v", err)
+			}
+		case "stream":
+			err := getMessage(c, os.Args[2])
+			if err != nil {
+				log.Fatalf("Couldn't execute: %v", err)
+			}
+		case "chat":
+			go getMessage(c, os.Args[2])
+			err := sendMessage(c, os.Args[2], os.Args[3])
+			if err != nil {
+				log.Fatalf("Couldn't execute: %v", err)
+			}
+		default:
+			log.Fatalf("Unknown command.")
+		}
+	} else {
+		log.Fatalf("Need arguments.")
+	}
 }
